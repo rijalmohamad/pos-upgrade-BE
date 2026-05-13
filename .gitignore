@@ -1,0 +1,27 @@
+node_modules
+local.json
+yarn.lock
+dev-server.json
+defaultconf.json
+log
+.wwebjs_auth/
+.wwebjs_cache/
+
+# yarn error logs
+yarn-error.log
+
+# Environment varibales
+.env*
+!.env*.example
+
+# Code coverage
+coverage
+
+logs/
+logs/*
+uploads/
+uploads/*
+
+# WhatsApp sessions
+session-local/
+whatsapp/session/

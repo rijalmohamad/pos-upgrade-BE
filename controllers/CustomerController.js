@@ -74,13 +74,13 @@ class CustomerController extends BaseController {
         try {
             const { id } = req.params;
             const [rows] = await db.execute(
-                'SELECT SUM(total - pay_amount) as debt FROM sales WHERE customer_id = ? AND pay_amount < total',
+                "SELECT SUM(total - pay_amount) as debt FROM sales WHERE customer_id = ? AND pay_amount < total AND status = 'success'",
                 [id]
             );
             const debt = rows[0]?.debt || 0;
 
             const [details] = await db.execute(
-                'SELECT invoice_no, date, due_date, (total - pay_amount) as remaining FROM sales WHERE customer_id = ? AND pay_amount < total',
+                "SELECT invoice_no, date, due_date, (total - pay_amount) as remaining FROM sales WHERE customer_id = ? AND pay_amount < total AND status = 'success'",
                 [id]
             );
 
