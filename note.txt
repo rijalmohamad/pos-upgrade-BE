@@ -1,0 +1,133 @@
+lanjut ke fitur Pembelian Baru 
+
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\pembelian.blade.php
+
+lanjut ke fitur Manajemen Stok 
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\master_stock.blade.php
+
+lengkapi ketika klik Riwayat 
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\stock_history.blade.php
+
+
+lanjut ke fitur Mutasi Antar Gudang
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\mutasi_gudang.blade.php
+
+lanjut ke fitur Penyesuaian Stok
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\stock_adjustment.blade.php
+
+
+lanjut ke fitur Laporan Stok Barang
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\report_stock.blade.php
+
+
+
+lanjut  perbaiki dan samakan Role & Permission
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\role_management.blade.php
+
+lanjut  perbaiki dan samakan Manajemen User
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\user_management.blade.php
+
+
+lanjut ke fitur Dashboard
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\dashboard.blade.php
+
+
+lanjut  buatkan  fitur KEUANGAN -> Kasir & Saldo
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\cashier_session.blade.php
+
+
+lanjut  buatkan  fitur KEUANGAN -> Laporan Keuangan
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_reports.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Laporan Utang & Piutang
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\report_debt_receivable.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Jurnal Umum
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_journals.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Jurnal Manual
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_journals_manual.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Buku Besar
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_ledger.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Pelunasan H/P
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_payments.blade.php
+
+lanjut  buatkan  fitur KEUANGAN -> Pengaturan Akun
+D:\laragon\www\app-pos-upgrade\app-pos-FE\src\app\components\layout\layout.component.html
+usahakan sama persis 
+dari tampilan, controller, 
+hingga validasinya 
+dan menggunakan tabel yg sama 
+D:\laragon\www\app-pos-grosir\resources\views\finance_accounts.blade.php

@@ -1,0 +1,165 @@
+[2026-05-09T18:02:44.272Z] [ERROR] Error fetching items | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:03:56.005Z] [ERROR] Error fetching items | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:04:04.964Z] [ERROR] Error fetching items | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:04:26.035Z] [ERROR] Error fetching all from categories | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\BaseController.js:17:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:04:27.229Z] [ERROR] Error fetching items | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:04:39.830Z] [ERROR] Error fetching all from categories | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\BaseController.js:17:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T18:04:41.752Z] [ERROR] Error fetching items | Error: Table 'app_pos_grosir.categories' doesn't exist | Stack: Error: Table 'app_pos_grosir.categories' doesn't exist
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T20:02:54.395Z] [ERROR] Error fetching all from customers | Error: Incorrect arguments to mysqld_stmt_execute | Stack: Error: Incorrect arguments to mysqld_stmt_execute
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\BaseController.js:17:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-09T20:02:54.404Z] [ERROR] Error fetching items | Error: Incorrect arguments to mysqld_stmt_execute | Stack: Error: Incorrect arguments to mysqld_stmt_execute
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:39:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-10T01:12:38.755Z] [ERROR] Error checking stock | Error: Unknown column 'booking_qty' in 'field list' | Stack: Error: Unknown column 'booking_qty' in 'field list'
+    at checkStock (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:148:46)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T01:55:36.070Z] [ERROR] Error checking stock | Error: Unknown column 'booking_qty' in 'field list' | Stack: Error: Unknown column 'booking_qty' in 'field list'
+    at checkStock (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:148:46)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T01:56:29.462Z] [ERROR] Error checking stock | Error: Bind parameters must not contain undefined. To pass SQL NULL specify JS null | Stack: TypeError: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+    at checkStock (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:148:46)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T01:58:13.583Z] [ERROR] Error creating sale | Error: Column count doesn't match value count at row 1 | Stack: Error: Column count doesn't match value count at row 1
+    at create (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:79:45)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T02:38:26.970Z] [ERROR] Error fetching sales | Error: Incorrect arguments to mysqld_stmt_execute | Stack: Error: Incorrect arguments to mysqld_stmt_execute
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:62:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-10T02:38:35.235Z] [ERROR] Error fetching sales | Error: Incorrect arguments to mysqld_stmt_execute | Stack: Error: Incorrect arguments to mysqld_stmt_execute
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:62:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-10T02:38:45.610Z] [ERROR] Error fetching sales | Error: Incorrect arguments to mysqld_stmt_execute | Stack: Error: Incorrect arguments to mysqld_stmt_execute
+    at getAll (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:62:37)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\route.js:117:3)
+    at handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\lib\layer.js:152:17)
+    at D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:295:15
+    at processParams (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:582:12)
+    at next (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:291:5)
+    at Function.handle (D:\laragon\www\app-pos-upgrade\app-pos-BE\node_modules\router\index.js:186:3)
+[2026-05-10T04:07:03.746Z] [ERROR] Error fetching sale by ID | Error: Unknown column 'u.unit_name' in 'field list' | Stack: Error: Unknown column 'u.unit_name' in 'field list'
+    at getById (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:99:43)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T04:07:08.404Z] [ERROR] Error fetching sale by ID | Error: Unknown column 'u.unit_name' in 'field list' | Stack: Error: Unknown column 'u.unit_name' in 'field list'
+    at getById (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:99:43)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T04:07:49.558Z] [ERROR] Error fetching sale by ID | Error: Unknown column 'u.unit_name' in 'field list' | Stack: Error: Unknown column 'u.unit_name' in 'field list'
+    at getById (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\SaleController.js:99:43)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T07:34:37.703Z] [ERROR] Error updating item | Error: Out of range value for column 'price' at row 1 | Stack: Error: Out of range value for column 'price' at row 1
+    at update (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:222:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T07:34:40.092Z] [ERROR] Error updating item | Error: Out of range value for column 'price' at row 1 | Stack: Error: Out of range value for column 'price' at row 1
+    at update (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:222:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T07:36:44.524Z] [ERROR] Error updating item | Error: Out of range value for column 'price' at row 1 | Stack: Error: Out of range value for column 'price' at row 1
+    at update (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:223:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2026-05-10T07:37:09.244Z] [ERROR] Error updating item | Error: Out of range value for column 'price' at row 1 | Stack: Error: Out of range value for column 'price' at row 1
+    at update (D:\laragon\www\app-pos-upgrade\app-pos-BE\controllers\ItemController.js:223:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
