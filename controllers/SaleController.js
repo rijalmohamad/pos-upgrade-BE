@@ -231,14 +231,33 @@ class SaleController extends BaseController {
                 );
 
                 // Debit Cash/Bank/AR
-                let debitAccId = cashAccId;
-                if (payment_method === 'Transfer Bank') debitAccId = bankAccId;
-                else if (payment_method === 'Credit') debitAccId = piutangAccId;
-
-                await conn.execute(
-                    `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, ?, 0)`,
-                    [journalId, debitAccId, total]
-                );
+                if (payment_method === 'Credit') {
+                    await conn.execute(
+                        `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, ?, 0)`,
+                        [journalId, piutangAccId, total]
+                    );
+                } else {
+                    let paid = parseFloat(pay_amount) || 0;
+                    if (paid > total) paid = total;
+                    const remaining = total - paid;
+                    
+                    let paymentAccId = cashAccId;
+                    if (payment_method === 'Transfer Bank') paymentAccId = bankAccId;
+                    
+                    if (paid > 0) {
+                        await conn.execute(
+                            `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, ?, 0)`,
+                            [journalId, paymentAccId, paid]
+                        );
+                    }
+                    
+                    if (remaining > 0) {
+                        await conn.execute(
+                            `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, ?, 0)`,
+                            [journalId, piutangAccId, remaining]
+                        );
+                    }
+                }
 
                 // Journal 2: COGS
                 if (totalCost > 0) {
