@@ -297,34 +297,65 @@ class ItemController extends BaseController {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Template Barang');
 
-            worksheet.columns = [
+            const [categories] = await db.execute('SELECT name FROM customer_categories ORDER BY priority ASC');
+            
+            const columns = [
                 { header: 'code', key: 'code', width: 15 },
                 { header: 'name', key: 'name', width: 30 },
                 { header: 'category', key: 'category', width: 20 },
+                { header: 'min stock', key: 'min_stock', width: 15 },
+                { header: 'weight', key: 'weight', width: 15 },
+                { header: 'weight unit', key: 'weight_unit', width: 15 },
                 { header: 'unit', key: 'unit', width: 15 },
-                { header: 'harga beli', key: 'harga_beli', width: 15 },
-                { header: 'general', key: 'general', width: 15 },
-                { header: 'reseller', key: 'reseller', width: 15 },
-                { header: 'top-reseller', key: 'top_reseller', width: 15 },
-                { header: 'special-reseller', key: 'special_reseller', width: 15 },
-                { header: 'super-seller', key: 'super_seller', width: 15 }
+                { header: 'harga beli', key: 'harga_beli', width: 15 }
             ];
+
+            categories.forEach(cat => {
+                columns.push({ header: cat.name.toLowerCase(), key: cat.name.toLowerCase().replace(/[^a-z0-9]/g, '_'), width: 15 });
+            });
+
+            // Units 2 to 5
+            for (let i = 2; i <= 5; i++) {
+                columns.push({ header: 'unit', key: 'unit_' + i, width: 15 });
+                columns.push({ header: 'qty', key: 'qty_' + i, width: 10 });
+                columns.push({ header: 'harga beli', key: 'harga_beli_' + i, width: 15 });
+                
+                categories.forEach(cat => {
+                    columns.push({ header: cat.name.toLowerCase(), key: cat.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + i, width: 15 });
+                });
+            }
+
+            worksheet.columns = columns;
 
             const [units] = await db.execute('SELECT name FROM units');
             const unitNames = units.map(u => u.name);
 
-            worksheet.addRow({
+            // Create a sample row
+            const sampleData = {
                 code: 'BRG01',
                 name: '511 KEMASAN POKPHAND',
                 category: 'PAKAN AYAM',
+                min_stock: 5,
+                weight: 1,
+                weight_unit: 'kg',
                 unit: unitNames[0] || 'DUS',
-                harga_beli: 215000,
-                general: 250000,
-                reseller: 245000,
-                top_reseller: 235000,
-                special_reseller: 225000,
-                super_seller: 220000
+                harga_beli: 215000
+            };
+            
+            categories.forEach(cat => {
+                sampleData[cat.name.toLowerCase().replace(/[^a-z0-9]/g, '_')] = 250000;
             });
+            
+            for (let i = 2; i <= 5; i++) {
+                sampleData['unit_' + i] = 'DUS';
+                sampleData['qty_' + i] = 10 * (i - 1);
+                sampleData['harga_beli_' + i] = 215000;
+                categories.forEach(cat => {
+                    sampleData[cat.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + i] = 250000;
+                });
+            }
+
+            worksheet.addRow(sampleData);
 
             // Add hidden sheet for units to avoid 255 char limit in list validation
             const unitSheet = workbook.addWorksheet('Data_Units', { state: 'hidden' });
@@ -334,7 +365,12 @@ class ItemController extends BaseController {
 
             if (unitNames.length > 0) {
                 for (let i = 2; i <= 1000; i++) {
-                    worksheet.getCell(`D${i}`).dataValidation = {
+                    worksheet.getCell(`F${i}`).dataValidation = {
+                        type: 'list',
+                        allowBlank: true,
+                        formulae: ['"gram,kg,kwintal,ton"']
+                    };
+                    worksheet.getCell(`G${i}`).dataValidation = {
                         type: 'list',
                         allowBlank: true,
                         formulae: [`Data_Units!$A$1:$A$${unitNames.length}`]
@@ -367,27 +403,59 @@ class ItemController extends BaseController {
             await workbook.xlsx.readFile(req.file.path);
             const worksheet = workbook.getWorksheet(1);
             const rows = [];
+            
+            const [customerCategories] = await conn.execute('SELECT id, name, priority FROM customer_categories ORDER BY priority ASC');
+            const [dbUnits] = await conn.execute('SELECT id, name FROM units');
+            const [dbCategories] = await conn.execute('SELECT id, name FROM item_categories');
+
+            const catCount = customerCategories.length;
 
             worksheet.eachRow((row, rowNumber) => {
                 if (rowNumber === 1) return;
-                rows.push({
+                
+                const r = {
                     rowNumber,
                     code: row.getCell(1).value,
                     name: row.getCell(2).value,
                     category: row.getCell(3).value,
-                    unit: row.getCell(4).value,
-                    harga_beli: row.getCell(5).value,
-                    general: row.getCell(6).value,
-                    reseller: row.getCell(7).value,
-                    top_reseller: row.getCell(8).value,
-                    special_reseller: row.getCell(9).value,
-                    super_seller: row.getCell(10).value
-                });
-            });
+                    min_stock: row.getCell(4).value,
+                    weight: row.getCell(5).value,
+                    weight_unit: row.getCell(6).value,
+                    unit: row.getCell(7).value,
+                    harga_beli: row.getCell(8).value,
+                    prices1: {},
+                    units: []
+                };
+                
+                let colIndex = 9;
+                for (let i = 0; i < catCount; i++) {
+                    const catId = customerCategories[i].id;
+                    r.prices1[catId] = parseFloat(row.getCell(colIndex++).value) || 0;
+                }
+                
+                for (let u = 2; u <= 5; u++) {
+                    const unitName = row.getCell(colIndex++).value;
+                    const qty = parseFloat(row.getCell(colIndex++).value) || 0;
+                    const hb = parseFloat(row.getCell(colIndex++).value) || 0;
+                    
+                    const prices = {};
+                    for (let i = 0; i < catCount; i++) {
+                        const catId = customerCategories[i].id;
+                        prices[catId] = parseFloat(row.getCell(colIndex++).value) || 0;
+                    }
 
-            const [customerCategories] = await conn.execute('SELECT id, name, priority FROM customer_categories ORDER BY priority ASC');
-            const [dbUnits] = await conn.execute('SELECT id, name FROM units');
-            const [dbCategories] = await conn.execute('SELECT id, name FROM item_categories');
+                    if (unitName && qty > 1) {
+                        r.units.push({
+                            unit: unitName,
+                            qty: qty,
+                            harga_beli: hb,
+                            prices: prices
+                        });
+                    }
+                }
+                
+                rows.push(r);
+            });
 
             const errors = [];
             const itemsToInsert = [];
@@ -404,7 +472,7 @@ class ItemController extends BaseController {
 
                 const unit = dbUnits.find(u => u.name.toLowerCase() === r.unit.toString().toLowerCase());
                 if (!unit) {
-                    errors.push(`Baris ${r.rowNumber}: Satuan "${r.unit}" tidak ada di database. Silakan buat di master satuan.`);
+                    errors.push(`Baris ${r.rowNumber}: Satuan "${r.unit}" tidak ada di database.`);
                     continue;
                 }
 
@@ -432,22 +500,37 @@ class ItemController extends BaseController {
                     continue;
                 }
 
-                const prices = {};
-                const filePrices = [r.general, r.reseller, r.top_reseller, r.special_reseller, r.super_seller];
-                
-                for (let i = 0; i < customerCategories.length; i++) {
-                    const cc = customerCategories[i];
-                    const price = filePrices[i];
-                    prices[cc.id] = parseFloat(price) || 0;
+                const additionalUnitsToInsert = [];
+                for (const u of r.units) {
+                    const unitObj = dbUnits.find(du => du.name.toLowerCase() === u.unit.toString().toLowerCase());
+                    if (!unitObj) {
+                         errors.push(`Baris ${r.rowNumber}: Satuan "${u.unit}" tidak ada di database.`);
+                    } else {
+                         additionalUnitsToInsert.push({
+                             unit_id: unitObj.id,
+                             qty: u.qty,
+                             harga_beli: u.harga_beli,
+                             prices: u.prices
+                         });
+                    }
                 }
+
+                let weightInGrams = parseFloat(r.weight) || 0;
+                let wu = (r.weight_unit || '').toString().toLowerCase();
+                if (wu === 'kg' || wu === 'kilogram') weightInGrams *= 1000;
+                else if (wu === 'kwintal') weightInGrams *= 100000;
+                else if (wu === 'ton') weightInGrams *= 1000000;
 
                 itemsToInsert.push({
                     code: r.code,
                     name: r.name,
                     item_category_id: categoryId,
+                    min_stock: parseFloat(r.min_stock) || 0,
+                    weight: weightInGrams,
                     unit_id: unit.id,
                     harga_beli: parseFloat(r.harga_beli) || 0,
-                    prices: prices
+                    prices1: r.prices1,
+                    additional_units: additionalUnitsToInsert
                 });
             }
 
@@ -470,7 +553,7 @@ class ItemController extends BaseController {
 
                 const [itemResult] = await conn.execute(
                     'INSERT INTO items (item_category_id, code, name, min_stock, weight, photo) VALUES (?, ?, ?, ?, ?, ?)',
-                    [item.item_category_id, code, item.name, 0, 0, null]
+                    [item.item_category_id, code, item.name, item.min_stock, item.weight, null]
                 );
                 const itemId = itemResult.insertId;
 
@@ -480,11 +563,26 @@ class ItemController extends BaseController {
                 );
                 const itemUnitId = unitResult.insertId;
 
-                for (const catId in item.prices) {
+                for (const catId in item.prices1) {
                     await conn.execute(
                         'INSERT INTO item_prices (item_unit_id, customer_category_id, price) VALUES (?, ?, ?)',
-                        [itemUnitId, catId, item.prices[catId]]
+                        [itemUnitId, catId, item.prices1[catId]]
                     );
+                }
+                
+                for (const u of item.additional_units) {
+                    const [unitResultOther] = await conn.execute(
+                        'INSERT INTO item_units (item_id, unit_id, amount, is_base, last_purchase_price) VALUES (?, ?, ?, ?, ?)',
+                        [itemId, u.unit_id, u.qty, 0, u.harga_beli]
+                    );
+                    const itemUnitIdOther = unitResultOther.insertId;
+
+                    for (const catId in u.prices) {
+                        await conn.execute(
+                            'INSERT INTO item_prices (item_unit_id, customer_category_id, price) VALUES (?, ?, ?)',
+                            [itemUnitIdOther, catId, u.prices[catId]]
+                        );
+                    }
                 }
             }
 

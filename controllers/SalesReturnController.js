@@ -172,19 +172,35 @@ class SalesReturnController extends BaseController {
 
                 const baseQty = detail.qty * amount;
 
+                // Get current stock
+                const [stockRows] = await conn.execute(
+                    'SELECT qty FROM stocks WHERE item_id = ? AND warehouse_id = ?',
+                    [detail.item_id, salesReturn.warehouse_id]
+                );
+                const qtyBefore = stockRows[0]?.qty || 0;
+                const qtyAfter = qtyBefore + baseQty;
+
                 // Increase stock
                 await conn.execute(
-                    'UPDATE stocks SET qty = qty + ? WHERE item_id = ? AND warehouse_id = ?',
-                    [baseQty, detail.item_id, salesReturn.warehouse_id]
+                    'INSERT INTO stocks (item_id, warehouse_id, qty) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + ?',
+                    [detail.item_id, salesReturn.warehouse_id, baseQty, baseQty]
                 );
 
                 // Insert stock history
                 await conn.execute(
                     `INSERT INTO stock_histories (
-                        item_id, warehouse_id, type, qty, reference_no, description, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+                        item_id, warehouse_id, reference_type, reference_id, qty_change, qty_before, qty_after, note, user_id, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
                     [
-                        detail.item_id, salesReturn.warehouse_id, 'in', baseQty, salesReturn.return_no, `Retur Penjualan #${salesReturn.return_no} (Inv: ${salesReturn.invoice_no})`
+                        detail.item_id, 
+                        salesReturn.warehouse_id, 
+                        'Sales Return', 
+                        id, 
+                        baseQty, 
+                        qtyBefore, 
+                        qtyAfter, 
+                        `Retur Penjualan #${salesReturn.return_no} (Inv: ${salesReturn.invoice_no})`, 
+                        req.user.id
                     ]
                 );
             }

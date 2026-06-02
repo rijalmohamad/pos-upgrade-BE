@@ -7,15 +7,30 @@ class PaymentController {
             const { type } = req.query;
 
             if (type === 'sale') {
+                const statusSuccess = 'success';
+                const modelSale = 'App\\Models\\Sale'; 
+
                 const [sales] = await db.execute(`
-                    SELECT s.id, s.invoice_no, s.date, s.total, c.name as customer_name,
-                           COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0) as paid_amount,
-                           (s.total - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0)) as remaining_amount
+                    SELECT 
+                        s.id, 
+                        s.invoice_no, 
+                        s.date, 
+                        s.total, 
+                        c.name AS customer_name,
+                        (COALESCE(s.pay_amount, 0) + COALESCE(p.total_paid, 0)) AS paid_amount,
+                        (s.total - COALESCE(s.pay_amount, 0) - COALESCE(p.total_paid, 0)) AS remaining_amount
                     FROM sales s
                     LEFT JOIN customers c ON s.customer_id = c.id
-                    WHERE s.status = 'success' AND s.payment_method = 'Credit'
+                    LEFT JOIN (
+                        SELECT payable_id, SUM(amount) AS total_paid 
+                        FROM payments 
+                        WHERE payable_type = ? 
+                        GROUP BY payable_id
+                    ) p ON p.payable_id = s.id
+                    WHERE LOWER(s.status) = LOWER(?) 
                     HAVING remaining_amount > 0
-                `);
+                `, [modelSale, statusSuccess]);
+
                 
                 const mapped = sales.map(s => ({
                     id: s.id,
@@ -29,15 +44,28 @@ class PaymentController {
 
                 res.json(mapped);
             } else if (type === 'purchase') {
+                const modelPurchase = 'App\\Models\\Purchase';
+
                 const [purchases] = await db.execute(`
-                    SELECT p.id, p.purchase_no, p.date, p.total, sup.name as supplier_name,
-                           COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0) as paid_amount,
-                           (p.total - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0)) as remaining_amount
+                    SELECT 
+                        p.id, 
+                        p.purchase_no, 
+                        p.date, 
+                        p.total, 
+                        sup.name as supplier_name,
+                        COALESCE(pay.total_paid, 0) AS paid_amount,
+                        (p.total - COALESCE(pay.total_paid, 0)) AS remaining_amount
                     FROM purchases p
                     LEFT JOIN suppliers sup ON p.supplier_id = sup.id
-                    WHERE p.payment_method = 'Credit'
+                    LEFT JOIN (
+                        SELECT payable_id, SUM(amount) AS total_paid
+                        FROM payments
+                        WHERE payable_type = ?
+                        GROUP BY payable_id
+                    ) pay ON pay.payable_id = p.id
+                    WHERE LOWER(p.payment_method) = 'credit'
                     HAVING remaining_amount > 0
-                `);
+                `, [modelPurchase]);
 
                 const mapped = purchases.map(p => ({
                     id: p.id,

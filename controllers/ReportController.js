@@ -245,8 +245,8 @@ class ReportController {
 
             const [receivables] = await db.execute(`
                 SELECT s.id, s.invoice_no, s.date, s.due_date, c.name as customer_name, s.total, 
-                       COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0) as paid, 
-                       (s.total - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0)) as remaining,
+                       (COALESCE(s.pay_amount, 0) + COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0)) as paid, 
+                       (s.total - COALESCE(s.pay_amount, 0) - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0)) as remaining,
                        CASE 
                            WHEN s.due_date < CURDATE() THEN 'Overdue'
                            WHEN s.due_date = CURDATE() THEN 'Due Today'
@@ -255,10 +255,9 @@ class ReportController {
                        END as status
                 FROM sales s 
                 LEFT JOIN customers c ON s.customer_id = c.id 
-                WHERE s.status = 'success' AND s.payment_method = 'Credit' 
+                WHERE LOWER(s.status) = 'success'
                 HAVING remaining > 0
             `);
-
             const [debts] = await db.execute(`
                 SELECT p.id, p.purchase_no, p.date, p.due_date, sup.name as supplier_name, p.total, 
                        COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0) as paid, 
@@ -271,7 +270,7 @@ class ReportController {
                        END as status
                 FROM purchases p 
                 LEFT JOIN suppliers sup ON p.supplier_id = sup.id 
-                WHERE p.payment_method = 'Credit' 
+                WHERE LOWER(p.payment_method) = 'credit'
                 HAVING remaining > 0
             `);
 
