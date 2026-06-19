@@ -16,9 +16,10 @@ class SaleController extends BaseController {
             const { invoice_no, status, method, startDate, endDate } = req.query;
 
             let query = `
-                SELECT s.*, c.name as customer_name 
+                SELECT s.*, c.name as customer_name, u.name as user_input
                 FROM sales s 
                 LEFT JOIN customers c ON s.customer_id = c.id
+                LEFT JOIN users u ON s.user_id = u.id
                 WHERE 1=1
             `;
             let countQuery = `SELECT COUNT(*) as total FROM sales s WHERE 1=1`;
@@ -83,9 +84,10 @@ class SaleController extends BaseController {
             
             // Get sale header
             const [saleRows] = await db.execute(`
-                SELECT s.*, c.name as customer_name 
+                SELECT s.*, c.name as customer_name, u.name as user_input
                 FROM sales s 
                 LEFT JOIN customers c ON s.customer_id = c.id
+                LEFT JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
             `, [id]);
             
@@ -97,7 +99,16 @@ class SaleController extends BaseController {
             
             // Get sale details
             const [detailRows] = await db.execute(`
-                SELECT sd.*, i.name as item_name, u.name as unit_name
+                SELECT sd.*, i.name as item_name, i.weight, iu.amount as unit_amount, u.name as unit_name,
+                       COALESCE((
+                           SELECT SUM(srd.qty)
+                           FROM sales_return_details srd
+                           JOIN sales_returns sr ON srd.sales_return_id = sr.id
+                           WHERE sr.sale_id = sd.sale_id 
+                             AND srd.item_id = sd.item_id 
+                             AND srd.item_unit_id = sd.item_unit_id
+                             AND sr.status != 'cancelled'
+                       ), 0) as already_returned_qty
                 FROM sale_details sd
                 LEFT JOIN items i ON sd.item_id = i.id
                 LEFT JOIN item_units iu ON sd.item_unit_id = iu.id
@@ -126,7 +137,30 @@ class SaleController extends BaseController {
             const { date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, status, payment_method, pay_amount, change_amount, due_date, items, alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival, total_weight } = req.body;
 
             if (!customer_id || !items || items.length === 0) {
+                await conn.rollback();
                 return res.status(400).json({ message: 'Customer and items are required' });
+            }
+
+            // Check Credit Limit
+            let current_debt = 0;
+            if (payment_method === 'Credit') {
+                current_debt = total;
+            } else if (pay_amount < total) {
+                current_debt = total - pay_amount;
+            }
+
+            if (current_debt > 0) {
+                const [customerRows] = await conn.execute('SELECT credit_limit FROM customers WHERE id = ?', [customer_id]);
+                const creditLimit = customerRows[0]?.credit_limit || 0;
+                
+                const [debtRows] = await conn.execute("SELECT SUM(total - pay_amount) as existing_debt FROM sales WHERE customer_id = ? AND pay_amount < total AND status IN ('success', 'completed')", [customer_id]);
+                const existingDebt = debtRows[0]?.existing_debt || 0;
+                
+                const remainingLimit = creditLimit - existingDebt;
+                if (current_debt > remainingLimit) {
+                    await conn.rollback();
+                    return res.status(400).json({ message: `Transaksi melebihi sisa limit kredit pelanggan! Sisa limit: Rp ${remainingLimit}` });
+                }
             }
 
             // Generate Invoice No: INV-YYYYMMDD-XXXX
@@ -148,8 +182,8 @@ class SaleController extends BaseController {
                     invoice_no, date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, 
                     status, payment_method, pay_amount, change_amount, due_date,
                     alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival,
-                    total_weight, user_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    total_weight, user_id, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     invoiceNo, date, customer_id, warehouse_id, subtotal, discount || 0, shipping_cost || 0, total,
                     status || 'process', payment_method || null, pay_amount || 0, change_amount || 0, due_date || null,
@@ -334,13 +368,13 @@ class SaleController extends BaseController {
 
     getLastSellingPrice = async (req, res) => {
         try {
-            const { item_id, item_unit_id, customer_category_id } = req.query;
+            const { item_id, item_unit_id, customer_category_id, customer_id } = req.query;
             
             if (!item_id || !item_unit_id || !customer_category_id) {
                 return res.status(400).json({ message: 'Missing required parameters' });
             }
             
-            const query = `
+            let query = `
                 SELECT sd.price, s.date, s.invoice_no
                 FROM sale_details sd
                 JOIN sales s ON sd.sale_id = s.id
@@ -349,11 +383,20 @@ class SaleController extends BaseController {
                   AND sd.item_unit_id = ? 
                   AND c.customer_category_id = ?
                   AND s.status IN ('success', 'completed')
+            `;
+            let params = [item_id, item_unit_id, customer_category_id];
+
+            if (customer_id) {
+                query += ` AND s.customer_id = ?`;
+                params.push(customer_id);
+            }
+
+            query += `
                 ORDER BY s.date DESC, s.id DESC
                 LIMIT 1
             `;
             
-            const [rows] = await db.execute(query, [item_id, item_unit_id, customer_category_id]);
+            const [rows] = await db.execute(query, params);
             
             if (rows.length === 0) {
                 return res.json({ price: null });

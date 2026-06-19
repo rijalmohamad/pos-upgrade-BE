@@ -192,6 +192,7 @@ router.post('/cashier/open', authMiddleware, cashierController.openSession);
 router.post('/cashier/close', authMiddleware, cashierController.closeSession);
 router.post('/cashier/deposit', authMiddleware, cashierController.deposit);
 router.post('/cashier/transaction', authMiddleware, cashierController.storeCashTransaction);
+router.post('/cashier/resolve/:id', authMiddleware, cashierController.resolveSession);
 router.get('/cashier/history', authMiddleware, cashierController.getHistory);
 router.get('/accounts', authMiddleware, cashierController.getAccounts);
 

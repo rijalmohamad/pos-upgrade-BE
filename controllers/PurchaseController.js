@@ -124,7 +124,7 @@ class PurchaseController extends BaseController {
         const conn = await db.getConnection();
         await conn.beginTransaction();
         try {
-            const { supplier_id, warehouse_id, date, payment_method, due_date, discount, note, items } = req.body;
+            const { supplier_id, warehouse_id, date, payment_method, due_date, discount, note, items, pay_amount } = req.body;
 
             if (!supplier_id || !warehouse_id || !items || items.length === 0) {
                 return res.status(400).json({ message: 'Supplier, warehouse and items are required' });
@@ -147,16 +147,30 @@ class PurchaseController extends BaseController {
             const total = items.reduce((acc, item) => acc + (item.qty * item.price), 0);
             const grandTotal = total - (discount || 0);
 
-            const paymentStatus = payment_method === 'Cash' ? 'paid' : 'unpaid';
+            let paymentStatus = 'unpaid';
+            let changeAmount = 0;
+            let actualPay = parseFloat(pay_amount) || 0;
+
+            if (payment_method === 'Credit') {
+                actualPay = 0;
+                paymentStatus = 'unpaid';
+            } else {
+                if (actualPay >= grandTotal) {
+                    paymentStatus = 'paid';
+                    changeAmount = actualPay - grandTotal;
+                } else if (actualPay > 0 && actualPay < grandTotal) {
+                    paymentStatus = 'partial';
+                }
+            }
 
             const [result] = await conn.execute(
                 `INSERT INTO purchases (
                     purchase_no, supplier_id, warehouse_id, date, total, discount, 
-                    payment_status, payment_method, due_date, user_id, note
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    payment_status, payment_method, due_date, user_id, note, pay_amount, change_amount
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     purchaseNo, supplier_id, warehouse_id, date, grandTotal, discount || 0,
-                    paymentStatus, payment_method, due_date || null, req.user.id, note || null
+                    paymentStatus, payment_method, due_date || null, req.user.id, note || null, actualPay, changeAmount
                 ]
             );
             const purchaseId = result.insertId;
@@ -219,10 +233,12 @@ class PurchaseController extends BaseController {
             // Insert Journal
             const [invAcc] = await conn.execute(`SELECT id FROM accounts WHERE code = '1-1201' OR name LIKE '%Persediaan%' LIMIT 1`);
             const [cashAcc] = await conn.execute(`SELECT id FROM accounts WHERE code = '1-1001' OR name LIKE '%Kas%' LIMIT 1`);
+            const [bankAcc] = await conn.execute(`SELECT id FROM accounts WHERE code = '1-1003' OR name LIKE '%Bank%' LIMIT 1`);
             const [utangAcc] = await conn.execute(`SELECT id FROM accounts WHERE code = '2-2101' OR name LIKE '%Utang%' LIMIT 1`);
 
             const invAccId = invAcc[0]?.id || 4; 
             const cashAccId = cashAcc[0]?.id || 1; 
+            const bankAccId = bankAcc[0]?.id || 6; 
             const utangAccId = utangAcc[0]?.id || 3; 
 
             const [journalResult] = await conn.execute(
@@ -237,12 +253,25 @@ class PurchaseController extends BaseController {
                 [journalId, invAccId, grandTotal]
             );
 
-            // Credit Cash or AP
-            const creditAccId = payment_method === 'Cash' ? cashAccId : utangAccId;
-            await conn.execute(
-                `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, 0, ?)`,
-                [journalId, creditAccId, grandTotal]
-            );
+            // Credit Cash/Bank and AP
+            let remainingDebt = grandTotal;
+            let paidCash = Math.min(actualPay, grandTotal);
+
+            if (paidCash > 0) {
+                let cashOrBankAccId = (payment_method === 'Transfer' || payment_method === 'Transfer Bank') ? bankAccId : cashAccId;
+                await conn.execute(
+                    `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, 0, ?)`,
+                    [journalId, cashOrBankAccId, paidCash]
+                );
+                remainingDebt -= paidCash;
+            }
+
+            if (remainingDebt > 0) {
+                await conn.execute(
+                    `INSERT INTO journal_items (journal_id, account_id, debit, credit) VALUES (?, ?, 0, ?)`,
+                    [journalId, utangAccId, remainingDebt]
+                );
+            }
 
             await conn.commit();
             res.status(201).json({ message: 'Pembelian berhasil disimpan', id: purchaseId, purchase_no: purchaseNo });

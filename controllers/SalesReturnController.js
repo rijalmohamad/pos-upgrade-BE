@@ -92,7 +92,38 @@ class SalesReturnController extends BaseController {
             const { sale_id, date, reason, items } = req.body;
 
             if (!sale_id || !items || items.length === 0) {
+                await conn.rollback();
                 return res.status(400).json({ message: 'Sale ID and items are required' });
+            }
+
+            for (const item of items) {
+                const [saleDetailRows] = await conn.execute(`
+                    SELECT sd.qty,
+                           COALESCE((
+                               SELECT SUM(srd.qty)
+                               FROM sales_return_details srd
+                               JOIN sales_returns sr ON srd.sales_return_id = sr.id
+                               WHERE sr.sale_id = sd.sale_id 
+                                 AND srd.item_id = sd.item_id 
+                                 AND srd.item_unit_id = sd.item_unit_id
+                                 AND sr.status != 'cancelled'
+                           ), 0) as already_returned_qty
+                    FROM sale_details sd
+                    WHERE sd.sale_id = ? AND sd.item_id = ? AND sd.item_unit_id = ?
+                `, [sale_id, item.item_id, item.item_unit_id]);
+
+                if (saleDetailRows.length === 0) {
+                    await conn.rollback();
+                    return res.status(400).json({ message: 'Barang tidak ditemukan di transaksi awal.' });
+                }
+
+                const sd = saleDetailRows[0];
+                const maxReturnQty = sd.qty - sd.already_returned_qty;
+
+                if (item.qty > maxReturnQty) {
+                    await conn.rollback();
+                    return res.status(400).json({ message: `Kuantitas retur melebihi batas maksimal untuk item ID ${item.item_id}. Maksimal sisa retur: ${maxReturnQty}` });
+                }
             }
 
             // Generate Return No: RET-YYYYMMDD-XXXX

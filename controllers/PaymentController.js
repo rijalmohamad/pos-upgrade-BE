@@ -53,8 +53,8 @@ class PaymentController {
                         p.date, 
                         p.total, 
                         sup.name as supplier_name,
-                        COALESCE(pay.total_paid, 0) AS paid_amount,
-                        (p.total - COALESCE(pay.total_paid, 0)) AS remaining_amount
+                        (COALESCE(p.pay_amount, 0) + COALESCE(pay.total_paid, 0)) AS paid_amount,
+                        (p.total - COALESCE(p.pay_amount, 0) - COALESCE(pay.total_paid, 0)) AS remaining_amount
                     FROM purchases p
                     LEFT JOIN suppliers sup ON p.supplier_id = sup.id
                     LEFT JOIN (
@@ -63,7 +63,6 @@ class PaymentController {
                         WHERE payable_type = ?
                         GROUP BY payable_id
                     ) pay ON pay.payable_id = p.id
-                    WHERE LOWER(p.payment_method) = 'credit'
                     HAVING remaining_amount > 0
                 `, [modelPurchase]);
 
@@ -105,7 +104,7 @@ class PaymentController {
                 remaining = sales[0].remaining;
             } else {
                 const [purchases] = await db.execute(`
-                    SELECT (p.total - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0)) as remaining
+                    SELECT (p.total - COALESCE(p.pay_amount, 0) - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0)) as remaining
                     FROM purchases p WHERE p.id = ?
                 `, [payable_id]);
                 if (purchases.length === 0) return res.status(404).json({ message: 'Purchase not found' });
@@ -181,35 +180,58 @@ class PaymentController {
 
     getHistory = async (req, res) => {
         try {
-            const { page = 1, payable_type, start_date, end_date } = req.query;
+            const { page = 1, payable_type, start_date, end_date, ref_no, name } = req.query;
             const limit = 10;
             const offset = (parseInt(page) - 1) * limit;
 
-            let query = `
-                SELECT p.*, u.name as user_name
-                FROM payments p
-                LEFT JOIN users u ON p.user_id = u.id
-                WHERE 1=1
-            `;
+            let joinClause = `LEFT JOIN users u ON p.user_id = u.id `;
+            if (ref_no || name) {
+                joinClause += `
+                    LEFT JOIN sales s ON p.payable_type = 'App\\\\Models\\\\Sale' AND p.payable_id = s.id
+                    LEFT JOIN purchases pur ON p.payable_type = 'App\\\\Models\\\\Purchase' AND p.payable_id = pur.id
+                `;
+            }
+            if (name) {
+                joinClause += `
+                    LEFT JOIN customers c ON s.customer_id = c.id
+                    LEFT JOIN suppliers sup ON pur.supplier_id = sup.id
+                `;
+            }
+
+            let whereClause = `WHERE 1=1 `;
             const params = [];
 
             if (payable_type) {
-                query += ` AND p.payable_type = ?`;
+                whereClause += ` AND p.payable_type = ?`;
                 params.push(payable_type === 'sale' ? 'App\\Models\\Sale' : 'App\\Models\\Purchase');
             }
 
             if (start_date) {
-                query += ` AND p.date >= ?`;
+                whereClause += ` AND p.date >= ?`;
                 params.push(start_date);
             }
 
             if (end_date) {
-                query += ` AND p.date <= ?`;
+                whereClause += ` AND p.date <= ?`;
                 params.push(end_date);
             }
 
+            if (ref_no) {
+                whereClause += ` AND (s.invoice_no LIKE ? OR pur.purchase_no LIKE ?)`;
+                params.push(`%${ref_no}%`, `%${ref_no}%`);
+            }
+
+            if (name) {
+                whereClause += ` AND (c.name LIKE ? OR sup.name LIKE ?)`;
+                params.push(`%${name}%`, `%${name}%`);
+            }
+
+            let query = `SELECT p.*, u.name as user_name FROM payments p ` + joinClause + whereClause;
+
             const [rows] = await db.execute(query + ` ORDER BY p.date DESC, p.id DESC LIMIT ${limit} OFFSET ${offset}`, params);
-            const [totalRows] = await db.execute(`SELECT COUNT(*) as count FROM payments WHERE 1=1` + query.split('WHERE 1=1')[1], params);
+            
+            let countQuery = `SELECT COUNT(*) as count FROM payments p ` + joinClause + whereClause;
+            const [totalRows] = await db.execute(countQuery, params);
 
             for (const row of rows) {
                 if (row.payable_type === 'App\\Models\\Sale') {

@@ -242,6 +242,27 @@ class CashierController {
             res.status(500).json({ message: 'Internal server error' });
         }
     };
+
+    resolveSession = async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { settlement_by } = req.body;
+            
+            if (!settlement_by) {
+                return res.status(400).json({ message: 'Settlement type is required' });
+            }
+
+            await db.execute(
+                `UPDATE cashier_sessions SET settlement_by = ? WHERE id = ?`,
+                [settlement_by, id]
+            );
+
+            res.json({ message: 'Penyelesaian berhasil diperbarui' });
+        } catch (error) {
+            logger.error('Error resolving session', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    };
 }
 
 module.exports = new CashierController();
