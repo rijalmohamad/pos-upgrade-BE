@@ -83,7 +83,8 @@ class PurchaseController extends BaseController {
             const { id } = req.params;
             
             const [rows] = await db.execute(`
-                SELECT p.*, s.name as supplier_name, w.name as warehouse_name, u.name as user_name
+                SELECT p.*, s.name as supplier_name, w.name as warehouse_name, u.name as user_name,
+                (COALESCE(p.pay_amount, 0) + COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Purchase' AND payable_id = p.id), 0)) as total_paid
                 FROM purchases p
                 LEFT JOIN suppliers s ON p.supplier_id = s.id
                 LEFT JOIN warehouses w ON p.warehouse_id = w.id
@@ -96,6 +97,10 @@ class PurchaseController extends BaseController {
             }
             
             const purchase = rows[0];
+            
+            if (purchase.payment_status === 'paid' && parseFloat(purchase.total_paid || 0) === 0) {
+                purchase.total_paid = purchase.total;
+            }
             
             // Get details
             const [detailRows] = await db.execute(`
