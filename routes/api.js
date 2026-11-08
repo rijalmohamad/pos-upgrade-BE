@@ -137,8 +137,10 @@ router.get('/sales', saleController.getAll);
 router.get('/sales/last-price', authMiddleware, saleController.getLastSellingPrice);
 router.get('/sales/:id', saleController.getById);
 router.post('/sales', authMiddleware, saleController.create);
+router.put('/sales/:id', authMiddleware, saleController.create);
 router.post('/sales/check-stock', saleController.checkStock);
 router.post('/sales/:id/increment-print', saleController.incrementPrintCount);
+router.post('/sales/:id/cancel', authMiddleware, saleController.cancel);
 
 // Sales Returns
 router.get('/sales-returns', salesReturnController.getAll);

@@ -13,7 +13,7 @@ class SaleController extends BaseController {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             const offset = (page - 1) * limit;
-            const { invoice_no, status, method, startDate, endDate } = req.query;
+            const { invoice_no, status, method, customer_id, customer, startDate, endDate } = req.query;
 
             let query = `
                 SELECT s.*, c.name as customer_name, u.name as user_input
@@ -22,7 +22,12 @@ class SaleController extends BaseController {
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE 1=1
             `;
-            let countQuery = `SELECT COUNT(*) as total FROM sales s WHERE 1=1`;
+            let countQuery = `
+                SELECT COUNT(*) as total
+                FROM sales s
+                LEFT JOIN customers c ON s.customer_id = c.id
+                WHERE 1=1
+            `;
             let params = [];
             let countParams = [];
 
@@ -31,6 +36,18 @@ class SaleController extends BaseController {
                 countQuery += ` AND s.invoice_no LIKE ?`;
                 params.push(`%${invoice_no}%`);
                 countParams.push(`%${invoice_no}%`);
+            }
+            if (customer_id) {
+                query += ` AND s.customer_id = ?`;
+                countQuery += ` AND s.customer_id = ?`;
+                params.push(customer_id);
+                countParams.push(customer_id);
+            }
+            if (customer) {
+                query += ` AND (c.name LIKE ? OR s.alias LIKE ?)`;
+                countQuery += ` AND (c.name LIKE ? OR s.alias LIKE ?)`;
+                params.push(`%${customer}%`, `%${customer}%`);
+                countParams.push(`%${customer}%`, `%${customer}%`);
             }
             if (status) {
                 query += ` AND s.status = ?`;
@@ -84,9 +101,12 @@ class SaleController extends BaseController {
             
             // Get sale header
             const [saleRows] = await db.execute(`
-                SELECT s.*, c.name as customer_name, u.name as user_input
+                SELECT s.*, c.name as customer_name, c.credit_limit, c.term_days, c.customer_category_id,
+                       cc.name as category_name, cc.priority as customer_category_priority,
+                       u.name as user_input
                 FROM sales s 
                 LEFT JOIN customers c ON s.customer_id = c.id
+                LEFT JOIN customer_categories cc ON c.customer_category_id = cc.id
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
             `, [id]);
@@ -134,64 +154,110 @@ class SaleController extends BaseController {
         const conn = await db.getConnection();
         await conn.beginTransaction();
         try {
-            const { date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, status, payment_method, pay_amount, change_amount, due_date, items, alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival, total_weight } = req.body;
+            const { id: bodyId, edit_id, date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, status, payment_method, pay_amount, change_amount, due_date, items, alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival, total_weight } = req.body;
+            const editSaleId = req.params?.id || edit_id || bodyId || null;
 
             if (!customer_id || !items || items.length === 0) {
                 await conn.rollback();
                 return res.status(400).json({ message: 'Customer and items are required' });
             }
 
-            // Check Credit Limit
-            let current_debt = 0;
-            if (payment_method === 'Credit') {
-                current_debt = total;
-            } else if (pay_amount < total) {
-                current_debt = total - pay_amount;
-            }
+            // Check Credit Limit (skip for draft)
+            if (status !== 'draft') {
+                let current_debt = 0;
+                if (payment_method === 'Credit') {
+                    current_debt = total;
+                } else if (pay_amount < total) {
+                    current_debt = total - pay_amount;
+                }
 
-            if (current_debt > 0) {
-                const [customerRows] = await conn.execute('SELECT credit_limit FROM customers WHERE id = ?', [customer_id]);
-                const creditLimit = customerRows[0]?.credit_limit || 0;
-                
-                const [debtRows] = await conn.execute("SELECT SUM(total - pay_amount) as existing_debt FROM sales WHERE customer_id = ? AND pay_amount < total AND status IN ('success', 'completed')", [customer_id]);
-                const existingDebt = debtRows[0]?.existing_debt || 0;
-                
-                const remainingLimit = creditLimit - existingDebt;
-                if (current_debt > remainingLimit) {
-                    await conn.rollback();
-                    return res.status(400).json({ message: `Transaksi melebihi sisa limit kredit pelanggan! Sisa limit: Rp ${remainingLimit}` });
+                if (current_debt > 0) {
+                    const [customerRows] = await conn.execute('SELECT credit_limit FROM customers WHERE id = ?', [customer_id]);
+                    const creditLimit = parseFloat(customerRows[0]?.credit_limit) || 0;
+                    
+                    const modelSale = 'App\\Models\\Sale';
+                    const [debtRows] = await conn.execute(`
+                        SELECT SUM(GREATEST(s.total - COALESCE(s.pay_amount, 0) - COALESCE(p.total_paid, 0), 0)) as existing_debt
+                        FROM sales s
+                        LEFT JOIN (
+                            SELECT payable_id, SUM(amount) AS total_paid 
+                            FROM payments 
+                            WHERE payable_type = ? 
+                            GROUP BY payable_id
+                        ) p ON p.payable_id = s.id
+                        WHERE s.customer_id = ? AND s.status IN ('success', 'completed')
+                    `, [modelSale, customer_id]);
+                    const existingDebt = parseFloat(debtRows[0]?.existing_debt) || 0;
+                    
+                    const remainingLimit = creditLimit - existingDebt;
+                    if (current_debt > remainingLimit) {
+                        await conn.rollback();
+                        return res.status(400).json({ message: `Transaksi melebihi sisa limit kredit pelanggan! Sisa limit: Rp ${remainingLimit}` });
+                    }
                 }
             }
 
-            // Generate Invoice No: INV-YYYYMMDD-XXXX
-            const dateObj = new Date(date);
-            const year = dateObj.getFullYear();
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dateObj.getDate()).padStart(2, '0');
-            const datePrefix = `${year}${month}${day}`;
+            let saleId;
+            let invoiceNo;
 
-            const [countResult] = await conn.execute(
-                "SELECT COUNT(*) as total FROM sales WHERE invoice_no LIKE ?",
-                [`INV-${datePrefix}-%`]
-            );
-            const count = countResult[0].total;
-            const invoiceNo = `INV-${datePrefix}-${(count + 1).toString().padStart(4, '0')}`;
+            if (editSaleId) {
+                const [existingRows] = await conn.execute('SELECT id, invoice_no, status FROM sales WHERE id = ?', [editSaleId]);
+                if (existingRows.length === 0) {
+                    await conn.rollback();
+                    return res.status(404).json({ message: 'Transaksi yang diedit tidak ditemukan' });
+                }
 
-            const [saleResult] = await conn.execute(
-                `INSERT INTO sales (
-                    invoice_no, date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, 
-                    status, payment_method, pay_amount, change_amount, due_date,
-                    alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival,
-                    total_weight, user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-                [
-                    invoiceNo, date, customer_id, warehouse_id, subtotal, discount || 0, shipping_cost || 0, total,
-                    status || 'process', payment_method || null, pay_amount || 0, change_amount || 0, due_date || null,
-                    alias || null, discount_package_id || null, shipping_method || null, courier_name || null, shipping_address || null, estimation_days || null, estimation_arrival || null,
-                    total_weight || 0, req.user.id
-                ]
-            );
-            const saleId = saleResult.insertId;
+                saleId = existingRows[0].id;
+                invoiceNo = existingRows[0].invoice_no;
+
+                await conn.execute(
+                    `UPDATE sales SET
+                        date = ?, customer_id = ?, warehouse_id = ?, subtotal = ?, discount = ?, shipping_cost = ?, total = ?,
+                        status = ?, payment_method = ?, pay_amount = ?, change_amount = ?, due_date = ?,
+                        alias = ?, discount_package_id = ?, shipping_method = ?, courier_name = ?, shipping_address = ?,
+                        estimation_days = ?, estimation_arrival = ?, total_weight = ?, user_id = ?, updated_at = NOW()
+                     WHERE id = ?`,
+                    [
+                        date, customer_id, warehouse_id, subtotal, discount || 0, shipping_cost || 0, total,
+                        status || 'process', payment_method || null, pay_amount || 0, change_amount || 0, due_date || null,
+                        alias || null, discount_package_id || null, shipping_method || null, courier_name || null, shipping_address || null,
+                        estimation_days || null, estimation_arrival || null, total_weight || 0, req.user.id,
+                        saleId
+                    ]
+                );
+
+                await conn.execute('DELETE FROM sale_details WHERE sale_id = ?', [saleId]);
+            } else {
+                // Generate Invoice No: INV-YYYYMMDD-XXXX
+                const dateObj = new Date(date);
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const datePrefix = `${year}${month}${day}`;
+
+                const [countResult] = await conn.execute(
+                    "SELECT COUNT(*) as total FROM sales WHERE invoice_no LIKE ?",
+                    [`INV-${datePrefix}-%`]
+                );
+                const count = countResult[0].total;
+                invoiceNo = `INV-${datePrefix}-${(count + 1).toString().padStart(4, '0')}`;
+
+                const [saleResult] = await conn.execute(
+                    `INSERT INTO sales (
+                        invoice_no, date, customer_id, warehouse_id, subtotal, discount, shipping_cost, total, 
+                        status, payment_method, pay_amount, change_amount, due_date,
+                        alias, discount_package_id, shipping_method, courier_name, shipping_address, estimation_days, estimation_arrival,
+                        total_weight, user_id, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                    [
+                        invoiceNo, date, customer_id, warehouse_id, subtotal, discount || 0, shipping_cost || 0, total,
+                        status || 'process', payment_method || null, pay_amount || 0, change_amount || 0, due_date || null,
+                        alias || null, discount_package_id || null, shipping_method || null, courier_name || null, shipping_address || null, estimation_days || null, estimation_arrival || null,
+                        total_weight || 0, req.user.id
+                    ]
+                );
+                saleId = saleResult.insertId;
+            }
 
             let totalCost = 0;
             for (const item of items) {
@@ -417,6 +483,17 @@ class SaleController extends BaseController {
             res.json({ success: true, print_count: rows[0]?.print_count || 0 });
         } catch (error) {
             logger.error('Error incrementing print count', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    };
+
+    cancel = async (req, res) => {
+        try {
+            const { id } = req.params;
+            await db.execute("UPDATE sales SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [id]);
+            res.json({ success: true, message: 'Transaksi telah dibatalkan' });
+        } catch (error) {
+            logger.error('Error cancelling sale', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     };

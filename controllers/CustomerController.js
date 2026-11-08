@@ -73,16 +73,26 @@ class CustomerController extends BaseController {
     getDebt = async (req, res) => {
         try {
             const { id } = req.params;
-            const [rows] = await db.execute(
-                "SELECT SUM(total - pay_amount) as debt FROM sales WHERE customer_id = ? AND pay_amount < total AND status = 'success'",
-                [id]
-            );
-            const debt = rows[0]?.debt || 0;
+            const modelSale = 'App\\Models\\Sale';
 
-            const [details] = await db.execute(
-                "SELECT invoice_no, date, due_date, (total - pay_amount) as remaining FROM sales WHERE customer_id = ? AND pay_amount < total AND status = 'success'",
-                [id]
-            );
+            const [details] = await db.execute(`
+                SELECT 
+                    s.invoice_no, 
+                    s.date, 
+                    s.due_date, 
+                    (s.total - COALESCE(s.pay_amount, 0) - COALESCE(p.total_paid, 0)) AS remaining
+                FROM sales s
+                LEFT JOIN (
+                    SELECT payable_id, SUM(amount) AS total_paid 
+                    FROM payments 
+                    WHERE payable_type = ? 
+                    GROUP BY payable_id
+                ) p ON p.payable_id = s.id
+                WHERE s.customer_id = ? AND LOWER(s.status) = 'success'
+                HAVING remaining > 0
+            `, [modelSale, id]);
+
+            const debt = details.reduce((sum, item) => sum + (parseFloat(item.remaining) || 0), 0);
 
             res.json({ success: true, debt, details });
         } catch (error) {

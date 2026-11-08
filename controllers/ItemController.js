@@ -373,6 +373,7 @@ class ItemController extends BaseController {
                     worksheet.getCell(`G${i}`).dataValidation = {
                         type: 'list',
                         allowBlank: true,
+                        showErrorMessage: false,
                         formulae: [`Data_Units!$A$1:$A$${unitNames.length}`]
                     };
                 }
@@ -407,22 +408,38 @@ class ItemController extends BaseController {
             const [customerCategories] = await conn.execute('SELECT id, name, priority FROM customer_categories ORDER BY priority ASC');
             const [dbUnits] = await conn.execute('SELECT id, name FROM units');
             const [dbCategories] = await conn.execute('SELECT id, name FROM item_categories');
+            const [existingItems] = await conn.execute('SELECT code, name FROM items');
 
             const catCount = customerCategories.length;
+
+            const getCellVal = (row, colIndex) => {
+                const val = row.getCell(colIndex).value;
+                if (val !== null && typeof val === 'object') {
+                    if (val.result !== undefined) return val.result;
+                    if (val.richText) return val.richText.map(rt => rt.text).join('');
+                    if (val.text !== undefined) return val.text;
+                }
+                return val;
+            };
 
             worksheet.eachRow((row, rowNumber) => {
                 if (rowNumber === 1) return;
                 
+                const codeVal = getCellVal(row, 1);
+                const nameVal = getCellVal(row, 2);
+                const unitVal = getCellVal(row, 7);
+                if (!codeVal && !nameVal && !unitVal) return;
+
                 const r = {
                     rowNumber,
-                    code: row.getCell(1).value,
-                    name: row.getCell(2).value,
-                    category: row.getCell(3).value,
-                    min_stock: row.getCell(4).value,
-                    weight: row.getCell(5).value,
-                    weight_unit: row.getCell(6).value,
-                    unit: row.getCell(7).value,
-                    harga_beli: row.getCell(8).value,
+                    code: codeVal,
+                    name: nameVal,
+                    category: getCellVal(row, 3),
+                    min_stock: getCellVal(row, 4),
+                    weight: getCellVal(row, 5),
+                    weight_unit: getCellVal(row, 6),
+                    unit: unitVal,
+                    harga_beli: getCellVal(row, 8),
                     prices1: {},
                     units: []
                 };
@@ -430,18 +447,18 @@ class ItemController extends BaseController {
                 let colIndex = 9;
                 for (let i = 0; i < catCount; i++) {
                     const catId = customerCategories[i].id;
-                    r.prices1[catId] = parseFloat(row.getCell(colIndex++).value) || 0;
+                    r.prices1[catId] = parseFloat(getCellVal(row, colIndex++)) || 0;
                 }
                 
                 for (let u = 2; u <= 5; u++) {
-                    const unitName = row.getCell(colIndex++).value;
-                    const qty = parseFloat(row.getCell(colIndex++).value) || 0;
-                    const hb = parseFloat(row.getCell(colIndex++).value) || 0;
+                    const unitName = getCellVal(row, colIndex++);
+                    const qty = parseFloat(getCellVal(row, colIndex++)) || 0;
+                    const hb = parseFloat(getCellVal(row, colIndex++)) || 0;
                     
                     const prices = {};
                     for (let i = 0; i < catCount; i++) {
                         const catId = customerCategories[i].id;
-                        prices[catId] = parseFloat(row.getCell(colIndex++).value) || 0;
+                        prices[catId] = parseFloat(getCellVal(row, colIndex++)) || 0;
                     }
 
                     if (unitName && qty > 1) {
@@ -459,60 +476,68 @@ class ItemController extends BaseController {
 
             const errors = [];
             const itemsToInsert = [];
+            const seenCodes = new Map();
+            const seenNames = new Map();
 
             for (const r of rows) {
-                if (!r.name) {
+                const itemName = r.name ? r.name.toString().trim() : '';
+                if (!itemName) {
                     errors.push(`Baris ${r.rowNumber}: Nama barang tidak boleh kosong`);
                     continue;
                 }
-                if (!r.unit) {
+                const unitName = r.unit ? r.unit.toString().trim() : '';
+                if (!unitName) {
                     errors.push(`Baris ${r.rowNumber}: Satuan tidak boleh kosong`);
                     continue;
                 }
 
-                const unit = dbUnits.find(u => u.name.toLowerCase() === r.unit.toString().toLowerCase());
-                if (!unit) {
-                    errors.push(`Baris ${r.rowNumber}: Satuan "${r.unit}" tidak ada di database.`);
-                    continue;
-                }
+                const unit = dbUnits.find(u => u.name.toLowerCase() === unitName.toLowerCase());
+                const unitId = unit ? unit.id : null;
 
+                const categoryName = (r.category ? r.category.toString().trim() : '') || 'UMUM';
                 let categoryId = null;
-                if (r.category) {
-                    const cat = dbCategories.find(c => c.name.toLowerCase() === r.category.toString().toLowerCase());
-                    if (cat) {
-                        categoryId = cat.id;
-                    } else {
-                        errors.push(`Baris ${r.rowNumber}: Kategori "${r.category}" tidak ada di database.`);
-                        continue;
-                    }
+                const cat = dbCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+                if (cat) {
+                    categoryId = cat.id;
                 }
 
-                if (r.code) {
-                    const [dupCode] = await conn.execute('SELECT id FROM items WHERE code = ?', [r.code]);
-                    if (dupCode.length > 0) {
-                        errors.push(`Baris ${r.rowNumber}: Kode barang "${r.code}" sudah ada.`);
+                const itemCode = r.code ? r.code.toString().trim() : '';
+                if (itemCode) {
+                    const codeLower = itemCode.toLowerCase();
+                    if (existingItems.some(ei => ei.code && ei.code.toLowerCase() === codeLower)) {
+                        errors.push(`Baris ${r.rowNumber}: Kode barang "${itemCode}" sudah ada di database.`);
                         continue;
                     }
+                    if (seenCodes.has(codeLower)) {
+                        errors.push(`Baris ${r.rowNumber}: Kode barang "${itemCode}" duplikat di file Excel (sama dengan baris ${seenCodes.get(codeLower)}).`);
+                        continue;
+                    }
+                    seenCodes.set(codeLower, r.rowNumber);
                 }
-                const [dupName] = await conn.execute('SELECT id FROM items WHERE name = ?', [r.name]);
-                if (dupName.length > 0) {
-                    errors.push(`Baris ${r.rowNumber}: Nama barang "${r.name}" sudah ada.`);
+
+                const nameLower = itemName.toLowerCase();
+                if (existingItems.some(ei => ei.name && ei.name.toLowerCase() === nameLower)) {
+                    errors.push(`Baris ${r.rowNumber}: Nama barang "${itemName}" sudah ada di database.`);
                     continue;
                 }
+                if (seenNames.has(nameLower)) {
+                    errors.push(`Baris ${r.rowNumber}: Nama barang "${itemName}" duplikat di file Excel (sama dengan baris ${seenNames.get(nameLower)}).`);
+                    continue;
+                }
+                seenNames.set(nameLower, r.rowNumber);
 
                 const additionalUnitsToInsert = [];
                 for (const u of r.units) {
-                    const unitObj = dbUnits.find(du => du.name.toLowerCase() === u.unit.toString().toLowerCase());
-                    if (!unitObj) {
-                         errors.push(`Baris ${r.rowNumber}: Satuan "${u.unit}" tidak ada di database.`);
-                    } else {
-                         additionalUnitsToInsert.push({
-                             unit_id: unitObj.id,
-                             qty: u.qty,
-                             harga_beli: u.harga_beli,
-                             prices: u.prices
-                         });
-                    }
+                    const addUnitName = u.unit.toString().trim();
+                    if (!addUnitName) continue;
+                    const unitObj = dbUnits.find(du => du.name.toLowerCase() === addUnitName.toLowerCase());
+                    additionalUnitsToInsert.push({
+                        unit_id: unitObj ? unitObj.id : null,
+                        unit_name: addUnitName,
+                        qty: u.qty,
+                        harga_beli: u.harga_beli,
+                        prices: u.prices
+                    });
                 }
 
                 let weightInGrams = parseFloat(r.weight) || 0;
@@ -522,12 +547,14 @@ class ItemController extends BaseController {
                 else if (wu === 'ton') weightInGrams *= 1000000;
 
                 itemsToInsert.push({
-                    code: r.code,
-                    name: r.name,
+                    code: itemCode,
+                    name: itemName,
                     item_category_id: categoryId,
+                    category_name: categoryName,
                     min_stock: parseFloat(r.min_stock) || 0,
                     weight: weightInGrams,
-                    unit_id: unit.id,
+                    unit_id: unitId,
+                    unit_name: unitName,
                     harga_beli: parseFloat(r.harga_beli) || 0,
                     prices1: r.prices1,
                     additional_units: additionalUnitsToInsert
@@ -541,6 +568,34 @@ class ItemController extends BaseController {
             }
 
             for (const item of itemsToInsert) {
+                let categoryId = item.item_category_id;
+                if (!categoryId && item.category_name) {
+                    let cat = dbCategories.find(c => c.name.toLowerCase() === item.category_name.toLowerCase());
+                    if (!cat) {
+                        const [catResult] = await conn.execute(
+                            'INSERT INTO item_categories (name) VALUES (?)',
+                            [item.category_name]
+                        );
+                        cat = { id: catResult.insertId, name: item.category_name };
+                        dbCategories.push(cat);
+                    }
+                    categoryId = cat.id;
+                }
+
+                let baseUnitId = item.unit_id;
+                if (!baseUnitId && item.unit_name) {
+                    let unitObj = dbUnits.find(u => u.name.toLowerCase() === item.unit_name.toLowerCase());
+                    if (!unitObj) {
+                        const [unitInsert] = await conn.execute(
+                            'INSERT INTO units (name) VALUES (?)',
+                            [item.unit_name]
+                        );
+                        unitObj = { id: unitInsert.insertId, name: item.unit_name };
+                        dbUnits.push(unitObj);
+                    }
+                    baseUnitId = unitObj.id;
+                }
+
                 let code = item.code;
                 if (!code) {
                     const [lastItem] = await conn.execute("SELECT code FROM items WHERE code LIKE 'BRG-%' ORDER BY id DESC LIMIT 1");
@@ -553,13 +608,13 @@ class ItemController extends BaseController {
 
                 const [itemResult] = await conn.execute(
                     'INSERT INTO items (item_category_id, code, name, min_stock, weight, photo) VALUES (?, ?, ?, ?, ?, ?)',
-                    [item.item_category_id, code, item.name, item.min_stock, item.weight, null]
+                    [categoryId, code, item.name, item.min_stock, item.weight, null]
                 );
                 const itemId = itemResult.insertId;
 
                 const [unitResult] = await conn.execute(
                     'INSERT INTO item_units (item_id, unit_id, amount, is_base, last_purchase_price) VALUES (?, ?, ?, ?, ?)',
-                    [itemId, item.unit_id, 1, 1, item.harga_beli]
+                    [itemId, baseUnitId, 1, 1, item.harga_beli]
                 );
                 const itemUnitId = unitResult.insertId;
 
@@ -571,9 +626,23 @@ class ItemController extends BaseController {
                 }
                 
                 for (const u of item.additional_units) {
+                    let addUnitId = u.unit_id;
+                    if (!addUnitId && u.unit_name) {
+                        let unitObj = dbUnits.find(du => du.name.toLowerCase() === u.unit_name.toLowerCase());
+                        if (!unitObj) {
+                            const [unitInsert] = await conn.execute(
+                                'INSERT INTO units (name) VALUES (?)',
+                                [u.unit_name]
+                            );
+                            unitObj = { id: unitInsert.insertId, name: u.unit_name };
+                            dbUnits.push(unitObj);
+                        }
+                        addUnitId = unitObj.id;
+                    }
+
                     const [unitResultOther] = await conn.execute(
                         'INSERT INTO item_units (item_id, unit_id, amount, is_base, last_purchase_price) VALUES (?, ?, ?, ?, ?)',
-                        [itemId, u.unit_id, u.qty, 0, u.harga_beli]
+                        [itemId, addUnitId, u.qty, 0, u.harga_beli]
                     );
                     const itemUnitIdOther = unitResultOther.insertId;
 

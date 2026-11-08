@@ -96,10 +96,11 @@ class PaymentController {
 
             let remaining = 0;
             if (payable_type === 'sale') {
+                const modelSale = 'App\\Models\\Sale';
                 const [sales] = await db.execute(`
-                    SELECT (s.total - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = 'App\\\\Models\\\\Sale' AND payable_id = s.id), 0)) as remaining
+                    SELECT (s.total - COALESCE(s.pay_amount, 0) - COALESCE((SELECT SUM(amount) FROM payments WHERE payable_type = ? AND payable_id = s.id), 0)) as remaining
                     FROM sales s WHERE s.id = ?
-                `, [payable_id]);
+                `, [modelSale, payable_id]);
                 if (sales.length === 0) return res.status(404).json({ message: 'Sale not found' });
                 remaining = sales[0].remaining;
             } else {
