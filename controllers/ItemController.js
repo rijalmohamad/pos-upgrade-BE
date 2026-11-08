@@ -422,6 +422,25 @@ class ItemController extends BaseController {
                 return val;
             };
 
+            const parseNumber = (val) => {
+                if (val === null || val === undefined || val === '') return 0;
+                if (typeof val === 'number') return val;
+                let str = val.toString().trim();
+                // Jika mengandung koma sebagai desimal (format Indo seperti 0,45 atau 1.000,50)
+                if (str.includes(',')) {
+                    // Hilangkan titik pemisah ribuan jika ada, lalu ganti koma dengan titik desimal
+                    str = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    // Jika ada beberapa titik (pemisah ribuan seperti 1.000.000)
+                    const parts = str.split('.');
+                    if (parts.length > 2) {
+                        str = str.replace(/\./g, '');
+                    }
+                }
+                const parsed = parseFloat(str);
+                return isNaN(parsed) ? 0 : parsed;
+            };
+
             worksheet.eachRow((row, rowNumber) => {
                 if (rowNumber === 1) return;
                 
@@ -447,18 +466,18 @@ class ItemController extends BaseController {
                 let colIndex = 9;
                 for (let i = 0; i < catCount; i++) {
                     const catId = customerCategories[i].id;
-                    r.prices1[catId] = parseFloat(getCellVal(row, colIndex++)) || 0;
+                    r.prices1[catId] = parseNumber(getCellVal(row, colIndex++));
                 }
                 
                 for (let u = 2; u <= 5; u++) {
                     const unitName = getCellVal(row, colIndex++);
-                    const qty = parseFloat(getCellVal(row, colIndex++)) || 0;
-                    const hb = parseFloat(getCellVal(row, colIndex++)) || 0;
+                    const qty = parseNumber(getCellVal(row, colIndex++));
+                    const hb = parseNumber(getCellVal(row, colIndex++));
                     
                     const prices = {};
                     for (let i = 0; i < catCount; i++) {
                         const catId = customerCategories[i].id;
-                        prices[catId] = parseFloat(getCellVal(row, colIndex++)) || 0;
+                        prices[catId] = parseNumber(getCellVal(row, colIndex++));
                     }
 
                     if (unitName && qty > 1) {
@@ -540,22 +559,22 @@ class ItemController extends BaseController {
                     });
                 }
 
-                let weightInGrams = parseFloat(r.weight) || 0;
-                let wu = (r.weight_unit || '').toString().toLowerCase();
-                if (wu === 'kg' || wu === 'kilogram') weightInGrams *= 1000;
-                else if (wu === 'kwintal') weightInGrams *= 100000;
-                else if (wu === 'ton') weightInGrams *= 1000000;
+                let weightVal = parseNumber(r.weight);
+                let wu = (r.weight_unit || '').toString().trim().toLowerCase();
+                if (wu === 'kg' || wu === 'kilogram') weightVal *= 1000;
+                else if (wu === 'kw' || wu === 'kwintal') weightVal *= 100000;
+                else if (wu === 'ton') weightVal *= 1000000;
 
                 itemsToInsert.push({
                     code: itemCode,
                     name: itemName,
                     item_category_id: categoryId,
                     category_name: categoryName,
-                    min_stock: parseFloat(r.min_stock) || 0,
-                    weight: weightInGrams,
+                    min_stock: parseNumber(r.min_stock),
+                    weight: Math.round(weightVal * 100) / 100,
                     unit_id: unitId,
                     unit_name: unitName,
-                    harga_beli: parseFloat(r.harga_beli) || 0,
+                    harga_beli: parseNumber(r.harga_beli),
                     prices1: r.prices1,
                     additional_units: additionalUnitsToInsert
                 });
